@@ -105,4 +105,4 @@ ggplot(td, aes(as.Date(date), death)) +
     vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +
   theme(legend.position="none")
 
-ggsave("cov19.png", dpi=150)
+ggsave("cov19.png", dpi=100)
