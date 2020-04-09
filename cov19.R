@@ -5,7 +5,11 @@
 #   https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Situationsberichte/Archiv.html
 
 ### Scraping
-Sys.setlocale("LC_TIME", "de_DE.UTF-8")
+olocale <- Sys.getlocale("LC_TIME")
+sysname <- Sys.info()["sysname"]
+Sys.setlocale(
+  "LC_TIME",
+  switch(sysname, Linux="de_DE.UTF-8", Darwin="de_DE", Windows="German", "C")) # OSX not checked
 
 library(rvest)
 url <- "https://de.wikipedia.org/wiki/COVID-19-Pandemie_in_Deutschland"
@@ -19,16 +23,19 @@ conv_tbl <- function(tbl) {
   t <- data.frame(lapply(t, function(x) gsub("[.]", "", x)), stringsAsFactors=FALSE)
   t <- data.frame(lapply(t, function(x) gsub("[\u2013\u2014]", "0", x)), stringsAsFactors=FALSE)
   t[, 1] <- gsub(".*♠", "", t[, 1])
+  t[, 1] <- gsub("\u00a0", " ", t[, 1])
+  if (sysname == "Windows")
+    t[, 1] <- gsub("M\u00e4r", "Mrz", t[, 1])
   data.frame(
     lapply(t[, -1], as.numeric),
-    row.names=as.character(strptime(gsub("\u00a0", " ", t[, 1]), "%d %b %Y")))
+    row.names=as.character(strptime(t[, 1], "%d %b %Y")))
 }
 
-t1 <- conv_tbl(tbl[4]) # Cumulative infections
-t2 <- conv_tbl(tbl[5]) # Cumulative infections (per 100,000 inhabitants)
-t3 <- conv_tbl(tbl[6]) # Cumulative deaths
+t1 <- conv_tbl(tbl[4]) # Cum. infections
+t2 <- conv_tbl(tbl[5]) # Cum. infections (per 100,000 inhabitants)
+t3 <- conv_tbl(tbl[6]) # Cum. deaths
 
-Sys.setlocale("LC_TIME", "en_US.UTF-8")
+Sys.setlocale("LC_TIME", olocale)
 stopifnot(
   row.names(t1)[nrow(t1)] == row.names(t2)[nrow(t2)],
   all(colnames(t1) == colnames(t2)), all(colnames(t1) == colnames(t3)))
@@ -37,14 +44,13 @@ stopifnot(
 library(growthcurver)
 
 pop <- as.numeric(100000 * t1[nrow(t1), ] / t2[nrow(t2), ]) # larger number will make less erroneous
-t4 <- data.frame(t(t(as.matrix(t3)) / pop * 100000)) # Cumulative deaths (per 100,000 inhabitants)
+t4 <- data.frame(t(t(as.matrix(t3)) / pop * 100000)) # Cum. deaths (per 100,000 inhabitants)
 
 L <- lapply(t4, function(x) SummarizeGrowth(seq_along(rownames(t4)), x, bg_correct="none"))
 t5 <- data.frame(sapply(L, function(x) predict(x$model))) # Fitted
 row.names(t5) <- row.names(t4)
 
 ### Plot
-
 # Federal States of Germany
 state <- c(
   "BW", "BY", "BE", "BB", "HB", "HH", "HE", "MV",
