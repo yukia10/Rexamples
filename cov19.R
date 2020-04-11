@@ -61,21 +61,25 @@ t5 <- data.frame(sapply(L, function(x) predict(x$model))) # Fitted
 row.names(t5) <- row.names(t4)
 
 ### Plot
-col <-c(e="red", w="blue", b="purple")
-fg <- col[ew]
-names(fg) <- state
+library(ggplot2)
+library(cowplot)
 
-x <- as.POSIXct(row.names(t4))
-matplot(
-  x, t4, xaxt="n", type="l", lty=1, col=fg,
-  main="COVID-19 deaths in Germany",
-  xlab="Date", ylab="Deaths / 100,000 pop.")
-axis.POSIXct(
-  side=1, at=seq(x[1], x[length(x)], "day"), las=2, format="%m/%d")
-text(x[length(x)], t4[nrow(t4), ], names(t4), col=fg, adj=-0.2, cex=0.8)
-legend(
-  "topleft", c("Former East Germany", "Former West Germany", "Berlin"),
-  text.col=col)
+ggplot(stack(t4), aes(rep(as.Date(row.names(t4)), ncol(t4)), y=values, group=ind)) +
+  geom_line(aes(color=ew[ind])) + 
+  geom_text(
+    data=stack(t4[nrow(t4),]), 
+    aes(x=as.Date(tail(row.names(t4), 1)), y=values, label=ind, color=ew[ind]), 
+    hjust=-0.2) +
+  scale_color_manual(values=c(e="red", w="blue", b="purple")) +
+  scale_x_date(date_labels="%m/%d") +
+  labs(
+    title = sprintf(
+      "COVID-19 deaths in Germany (As of %s)", rownames(t4)[nrow(t4)]),
+    caption = "Data Source: Wikipedia based on Robert Koch Institut",
+    x = "Date", y = "Deaths / 100,000 pop.") +
+  theme_cowplot() +
+  theme(legend.position="none")
+
 
 library(tidyverse)
 library(geofacet)
@@ -97,7 +101,7 @@ ggplot(td, aes(as.Date(date), death)) +
   geom_rect(aes(fill=state), xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
   geom_point(shape=1) +
   geom_line(aes(as.Date(date), fitted), color="red") +
-  scale_x_date(date_labels="%b %d", date_breaks="2 weeks") +
+  scale_x_date(date_labels="%m/%d", date_breaks="2 weeks") +
   scale_fill_manual("legend", values=bg) +
   labs(
     title = sprintf(
