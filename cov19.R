@@ -66,7 +66,9 @@ row.names(t5) <- row.names(t4)
 
 ### Plot
 library(ggplot2)
+library(geofacet)
 library(cowplot)
+theme_set(theme_cowplot())
 
 ggplot(stack(t4), aes(rep(as.Date(row.names(t4)), ncol(t4)), y=values, group=ind)) +
   geom_line(aes(color=ew[ind])) + 
@@ -81,22 +83,10 @@ ggplot(stack(t4), aes(rep(as.Date(row.names(t4)), ncol(t4)), y=values, group=ind
       "COVID-19 deaths in Germany (As of %s)", rownames(t4)[nrow(t4)]),
     caption = "Data Source: Wikipedia based on Robert Koch Institut",
     x = "Date", y = "Deaths / 100,000 pop.") +
-  theme_cowplot() +
   theme(legend.position="none")
 
-
-library(tidyverse)
-library(geofacet)
-
-# library(cowplot)
-# theme_set(theme_cowplot())
-
-td <- as_tibble(t4, rownames="date") %>%
-  pivot_longer(-date, names_to="state", values_to="death")
-tf <- as_tibble(t5, rownames="date") %>%
-  pivot_longer(-date, names_to="state", values_to="fitted")
-td <- inner_join(td, tf, by=c("date", "state"))
-
+td <- cbind(date=rep(row.names(t4), ncol(t4)), stack(t4)[, c(2,1)], stack(t5)[, 1])
+colnames(td) <- c("date", "state", "death", "fitted")
 bg <- c(e="#FFCCCC", w="#CCCCFF", b="#FFCCFF")[ew]
 names(bg) <- state
 
