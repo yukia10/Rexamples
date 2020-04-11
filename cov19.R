@@ -27,6 +27,10 @@ library(rvest)
 url <- "COVID-19-Pandemie in Deutschland – Wikipedia.html"
 tbl <- url %>% read_html %>% html_nodes("table")
 
+nc <- sapply(seq_along(tbl), function(i) ncol(html_table(tbl[i], dec=".", fill=TRUE)[[1]]))
+tbl <- tbl[17 < nc]
+stopifnot(length(tbl) == 3)
+
 conv_tbl <- function(tbl) {
   t <- html_table(tbl, dec=".")[[1]]
   t <- t[-nrow(t), 1:17]
@@ -43,9 +47,9 @@ conv_tbl <- function(tbl) {
   data.frame(lapply(t[, -1], as.numeric), row.names=t[, 1])
 }
 
-t1 <- conv_tbl(tbl[4]) # Cum. infections
-t2 <- conv_tbl(tbl[5]) # Cum. infections / 100,000 pop.
-t3 <- conv_tbl(tbl[6]) # Cum. deaths
+t1 <- conv_tbl(tbl[1]) # Cum. infections
+t2 <- conv_tbl(tbl[2]) # Cum. infections / 100,000 pop.
+t3 <- conv_tbl(tbl[3]) # Cum. deaths
 
 stopifnot(all(colnames(t2) == colnames(t3)), all(colnames(t1) == colnames(t3)))
 
