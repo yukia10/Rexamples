@@ -24,7 +24,7 @@ month.de <- c(
 library(rvest)
 
 # url <- "https://de.wikipedia.org/wiki/COVID-19-Pandemie_in_Deutschland"
-url <- "COVID-19-Pandemie in Deutschland – Wikipedia.html"
+url <- "doc/COVID-19-Pandemie in Deutschland – Wikipedia.html"
 tbl <- url %>% read_html %>% html_nodes("table")
 
 nc <- sapply(seq_along(tbl), function(i) ncol(html_table(tbl[i], dec=".", fill=TRUE)[[1]]))
@@ -81,12 +81,13 @@ ggplot(stack(t4), aes(rep(as.Date(row.names(t4)), ncol(t4)), y=values, group=ind
   labs(
     title = sprintf(
       "COVID-19 deaths in Germany (As of %s)", rownames(t4)[nrow(t4)]),
-    caption = "Data Source: Wikipedia based on Robert Koch Institut",
+    caption = "Data Source: Wikipedia based on Robert Koch Institute",
     x = "Date", y = "Deaths / 100,000 pop.") +
   theme(legend.position="none")
 
 td <- cbind(date=rep(row.names(t4), ncol(t4)), stack(t4)[, c(2,1)], stack(t5)[, 1])
 colnames(td) <- c("date", "state", "death", "fitted")
+
 bg <- c(e="#FFCCCC", w="#CCCCFF", b="#FFCCFF")[ew]
 names(bg) <- state
 
@@ -101,7 +102,7 @@ ggplot(td, aes(as.Date(date), death)) +
     title = sprintf(
       "COVID-19 deaths in Germany (As of %s)",
       rownames(t4)[nrow(t4)]),
-    caption = "Data Source: Wikipedia based on Robert Koch Institut",
+    caption = "Data Source: Wikipedia based on Robert Koch Institute",
     x = "Date",
     y = "Deaths / 100,000 pop.") +
   geom_text(

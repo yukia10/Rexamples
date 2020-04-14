@@ -2,7 +2,7 @@
 
 # Data source:
 #   30 years after the fall of the Berlin Wall: Regional health differences in Germany,
-#   Journal of Health Monitoring S2/2019, Robert Koch Institut
+#   Journal of Health Monitoring S2/2019, Robert Koch Institute
 
 smokers <- data.frame(rbind(
   Women=c(
@@ -61,7 +61,7 @@ ggplot(tb, aes(sex, rate)) +
   scale_fill_manual("legend", values=c(fg, bg)) +
   labs(
     title = "Smoking rate in Germany (2017)", x = "Sex", y = "Smoking rate [%]",
-    caption = "Data Source: Journal of Health Monitoring S2/2019, Robert Koch Institut") +
+    caption = "Data Source: Journal of Health Monitoring S2/2019, Robert Koch Institute") +
   theme(legend.position="none")
 
 ggsave("smoker.png", dpi=100)
