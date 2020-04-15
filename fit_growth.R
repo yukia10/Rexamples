@@ -39,7 +39,7 @@ AICc <- function(fit) {
 fit_growthmodel_multstart <- function(FUN, p, x, y, ...) {
   if (is.data.frame(p))
     p <- as.matrix(p)
-  L <- foreach (i=seq_len(nrow(p)), .export="growthrates") %dopar% {
+  L <- foreach (i=seq_len(nrow(p)), .packages="growthrates") %dopar% {
     try(fit_growthmodel(
       FUN, p[i,], x, y, ...), TRUE)
   }
@@ -120,6 +120,7 @@ fit_nCoV_logis <- function(y) {
   r <- diff(y, 2) / diff(x, 2) / y[-c(1, length(y))]
   r <- r[!is.na(r) & is.finite(r)]
   r <- r[0 < r]
+  if (length(r) <= 0) return(NULL)
   
   lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2)
   upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5)
@@ -129,6 +130,7 @@ fit_nCoV_logis <- function(y) {
   L <- fit_growthmodel_multstart(
     grow_logis, p, x, y, lower=lower, upper=upper,
     method="Port", control=list(iter.max=300))
+  if (all(is.na(attr(L, "ssr")))) return(NULL)
   L[[which.min(attr(L, "ssr"))]]
 }
 
@@ -138,6 +140,7 @@ fit_nCoV_glogis <- function(y) {
   r <- diff(y, 2) / diff(x, 2) / y[-c(1, length(y))]
   r <- r[!is.na(r) & is.finite(r)]
   r <- r[0 < r]
+  if (length(r) <= 0) return(NULL)
   
   lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2, p=0)
   upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5, p=1)
@@ -147,6 +150,7 @@ fit_nCoV_glogis <- function(y) {
   L <- fit_growthmodel_multstart(
     grow_glogis, p, x, y, lower=lower, upper=upper,
     method="Port", control=list(iter.max=300))
+  if (all(is.na(attr(L, "ssr")))) return(NULL)
   L[[which.min(attr(L, "ssr"))]]
 }
 
