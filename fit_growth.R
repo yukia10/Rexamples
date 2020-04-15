@@ -8,7 +8,7 @@
 library(growthrates)
 library(doParallel)
 
-grow_logis <- function(time, parms, ...) {
+grow_logis <- function(time, parms, ...) { # should be equivalence to grow_logistic
   ode_logis <- function(time, init, parms, ...) {
     with(as.list(c(parms, init)), list(mumax * y * (1 - y / K)))
   }
@@ -39,12 +39,12 @@ AICc <- function(fit) {
 fit_growthmodel_multstart <- function(FUN, p, x, y, ...) {
   if (is.data.frame(p))
     p <- as.matrix(p)
-  L <- foreach (i=seq_len(nrow(p))) %dopar% {
+  L <- foreach (i=seq_len(nrow(p)), .export="growthrates") %dopar% {
     try(fit_growthmodel(
       FUN, p[i,], x, y, ...), TRUE)
   }
-  attr(L, "ssr") <- sapply(L, function(x)
-    ifelse("try-error" %in% class(x) , NA_real_, ifelse(x@fit$convergence, NA_real_, x@fit$ssr)))
+  attr(L, "ssr") <- sapply(L, function(x) ifelse(
+    "try-error" %in% class(x) , NA_real_, ifelse(x@fit$convergence, NA_real_, x@fit$ssr)))
   L
 }
 
@@ -88,7 +88,7 @@ summary(fit, cov=FALSE)
 print(AICc(fit))
 
 ###
-registerDoParallel(8)
+registerDoParallel(detectCores() / 2)
 
 lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2)
 upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5)
@@ -155,21 +155,21 @@ stop("Expected termination.")
 # t4 is given by cov19.R
 
 L2 <- lapply(t4, fit_nCoV_logis)
-K2 <- sapply(L2, function(x) x@par)["K",]
 AIC2 <- sapply(L2, AICc)
+K2 <- sapply(L2, function(x) x@par)["K",]
 
 L3 <- lapply(t4, fit_nCoV_glogis)
-K3 <- sapply(L3, function(x) x@par)["K",]
 AIC3 <- sapply(L3, AICc)
+K3 <- sapply(L3, function(x) x@par)["K",]
 
 plot(
   AIC2, AIC3, type="n", 
-  main="AIC", xlab="logistics", ylab="generalized logistic")
+  main="AIC", xlab="logistic", ylab="generalized logistic")
 text(AIC2, AIC3, state, col=c(e="red", w="blue", b="purple")[ew])
 abline(a=0, b=1, col="gray")
 
 plot(
   K2, K3, type="n", 
-  main="K", xlab="logistics", ylab="generalized logistic")
+  main="K", xlab="logistic", ylab="generalized logistic")
 text(K2, K3, state, col=c(e="red", w="blue", b="purple")[ew])
 abline(a=0, b=1, col="gray")
