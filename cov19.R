@@ -80,7 +80,7 @@ ggplot(stack(t4), aes(rep(as.Date(row.names(t4)), ncol(t4)), y=values, group=ind
   scale_x_date(date_labels="%m/%d") +
   labs(
     title = sprintf(
-      "COVID-19 deaths in Germany (As of %s)", rownames(t4)[nrow(t4)]),
+      "COVID-19 deaths in Germany (as of %s)", rownames(t4)[nrow(t4)]),
     caption = "Data Source: Wikipedia based on Robert Koch Institute",
     x = "Date", y = "Deaths / 100,000 pop.") +
   theme(legend.position="none")
@@ -100,7 +100,7 @@ ggplot(td, aes(as.Date(date), death)) +
   scale_fill_manual("legend", values=bg) +
   labs(
     title = sprintf(
-      "COVID-19 deaths in Germany (As of %s)",
+      "COVID-19 deaths in Germany (as of %s)",
       rownames(t4)[nrow(t4)]),
     caption = "Data Source: Wikipedia based on Robert Koch Institute",
     x = "Date",
@@ -110,4 +110,4 @@ ggplot(td, aes(as.Date(date), death)) +
     vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +
   theme(legend.position="none")
 
-ggsave("cov19.png", dpi=100)
+ggsave("cov19.png", width=16, height=12, dpi=72)
