@@ -28,12 +28,14 @@ grow_glogis <- function(time, parms, ...) {
   ode(init, time, ode_glogis, parms=odeparms, ...)
 }
 
-AICc <- function(fit) {
-  ssr <- fit@fit$ssr
+cAIC <- function(fit) {
+  ms <- fit@fit$ms # mean suquared residuals
   n <- nrow(fit@obs)
   k <- length(fit@par)
-  # n * log(ssr / n) + 2 * k + 2 * k * (k + 1) / (n - k - 1) # sufficient for delta
-  n * (log(2 * pi * ssr / n) + 1) + 2 * k + 2 * k * (k + 1) / (n - k - 1) 
+  # l <- -n / 2 * (log(2 * pi * ms) + 1)
+  # AIC <- -2 * l + 2 * k
+  # cAIC <- AIC + 2 * k * (k + 1) / (n - k - 1)
+  n * (log(2 * pi * ms) + 1) + 2 * k + 2 * k * (k + 1) / (n - k - 1) 
 }
 
 fit_growthmodel_multstart <- function(FUN, p, x, y, ...) {
@@ -43,8 +45,12 @@ fit_growthmodel_multstart <- function(FUN, p, x, y, ...) {
     try(fit_growthmodel(
       FUN, p[i,], x, y, ...), TRUE)
   }
-  attr(L, "ssr") <- sapply(L, function(x) ifelse(
-    "try-error" %in% class(x) , NA_real_, ifelse(x@fit$convergence, NA_real_, x@fit$ssr)))
+  attr(L, "convergence") <- sapply(L, function(x) ifelse(
+    "try-error" %in% class(x) , NA_real_, x@fit$convergence))
+  attr(L, "mse") <- sapply(L, function(x) ifelse(
+    "try-error" %in% class(x) , NA_real_, x@fit$ms))
+  attr(L, "kappa") <- sapply(L, function(x) ifelse(
+    "try-error" %in% class(x) , NA_real_, kappa(x@fit$hessian)))
   L
 }
 
@@ -76,16 +82,16 @@ fit <- fit_growthmodel(
   grow_logis, p, x, y, lower=lower, upper=upper, 
   method="Port", control=list(iter.max=300))
 summary(fit, cov=FALSE)
-print(AICc(fit))
+print(cAIC(fit))
 
 lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2, p=0)
 upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5, p=1)
 p <- c(y0=1e-5, mumax=median(r), K=max(y), p=1)
 fit <- fit_growthmodel(
   grow_glogis, p, x, y, lower=lower, upper=upper,
-  method="Port", control=list(iter.max=300))
+  method="Port", control=list(iter.max=300, trace=TRUE))
 summary(fit, cov=FALSE)
-print(AICc(fit))
+print(cAIC(fit))
 
 ###
 registerDoParallel(detectCores() / 2)
@@ -93,24 +99,24 @@ registerDoParallel(detectCores() / 2)
 lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2)
 upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5)
 p <- expand.grid(
-  y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y))
+  y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=seq.log(max(y) / 2 + 1e-6, 1e5 / 2, 11))
 L <- fit_growthmodel_multstart(
   grow_logis, p, x, y, lower=lower, upper=upper,
   method="Port", control=list(iter.max=300))
-fit <- L[[which.min(attr(L, "ssr"))]]
+fit <- L[[which.min(attr(L, "mse"))]]
 summary(fit, cov=FALSE)
-print(AICc(fit))
+print(cAIC(fit))
 
 lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2, p=0)
 upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5, p=1)
 p <- expand.grid(
-  y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y), p=1)
+  y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=seq.log(max(y) / 2 + 1e-6, 1e5 / 2, 11), p=1)
 L <- fit_growthmodel_multstart(
   grow_glogis, p, x, y, lower=lower, upper=upper, 
   method="Port", control=list(iter.max=300))
-fit <- L[[which.min(attr(L, "ssr"))]]
+fit <- L[[which.min(attr(L, "mse"))]]
 summary(fit, cov=FALSE)
-print(AICc(fit))
+print(cAIC(fit))
 
 ###
 
@@ -130,8 +136,8 @@ fit_nCoV_logis <- function(y) {
   L <- fit_growthmodel_multstart(
     grow_logis, p, x, y, lower=lower, upper=upper,
     method="Port", control=list(iter.max=300))
-  if (all(is.na(attr(L, "ssr")))) return(NULL)
-  L[[which.min(attr(L, "ssr"))]]
+  if (all(is.na(attr(L, "mse")))) return(NULL)
+  L[[which.min(attr(L, "mse"))]]
 }
 
 fit_nCoV_glogis <- function(y) {
@@ -146,12 +152,13 @@ fit_nCoV_glogis <- function(y) {
   upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5, p=1)
   p <- expand.grid(
     y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y), p=1)
-  
+    # y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=seq.log(lower["K"] + 1e-6, upper["K"] - 1e-6, 11), p=1)
+
   L <- fit_growthmodel_multstart(
     grow_glogis, p, x, y, lower=lower, upper=upper,
     method="Port", control=list(iter.max=300))
-  if (all(is.na(attr(L, "ssr")))) return(NULL)
-  L[[which.min(attr(L, "ssr"))]]
+  if (all(is.na(attr(L, "mse")))) return(NULL)
+  L[[which.min(attr(L, "mse"))]]
 }
 
 stop("Expected termination.")
@@ -159,11 +166,11 @@ stop("Expected termination.")
 # t4 is given by cov19.R
 
 L2 <- lapply(t4, fit_nCoV_logis)
-AIC2 <- sapply(L2, AICc)
+AIC2 <- sapply(L2, cAIC)
 K2 <- sapply(L2, function(x) x@par)["K",]
 
 L3 <- lapply(t4, fit_nCoV_glogis)
-AIC3 <- sapply(L3, AICc)
+AIC3 <- sapply(L3, cAIC)
 K3 <- sapply(L3, function(x) x@par)["K",]
 
 plot(
@@ -173,7 +180,7 @@ text(AIC2, AIC3, state, col=c(e="red", w="blue", b="purple")[ew])
 abline(a=0, b=1, col="gray")
 
 plot(
-  K2, K3, type="n", 
+  K2, K3, type="n", log="xy",
   main="K", xlab="logistic", ylab="generalized logistic")
 text(K2, K3, state, col=c(e="red", w="blue", b="purple")[ew])
 abline(a=0, b=1, col="gray")
