@@ -64,4 +64,4 @@ ggplot(tb, aes(sex, rate)) +
     caption = "Data Source: Journal of Health Monitoring S2/2019, Robert Koch Institute") +
   theme(legend.position="none")
 
-ggsave("smoker.png", width=16, height=12, dpi=72)
+ggsave("smoker.png", width=12, height=9, dpi=96)

@@ -37,6 +37,8 @@ conv_tbl <- function(tbl) {
   t <- data.frame(lapply(
     t, function(x) gsub("[(].*[)]", "", x)), stringsAsFactors=FALSE)
   t <- data.frame(lapply(
+    t, function(x) gsub("\\[.*\\]", "", x)), stringsAsFactors=FALSE)
+  t <- data.frame(lapply(
     t, function(x) gsub("[.]", "", x)), stringsAsFactors=FALSE)
   t <- data.frame(lapply(
     t, function(x) gsub("[\u2013\u2014]", "0", x)), stringsAsFactors=FALSE) # dash to 0
@@ -56,6 +58,7 @@ stopifnot(all(colnames(t2) == colnames(t3)), all(colnames(t1) == colnames(t3)))
 k <- tail(intersect(row.names(t1), row.names(t2)), 1) # latest common date
 pop <- as.numeric(100000 * t1[k, ] / t2[k, ]) # larger number will make less erroneous
 t4 <- data.frame(t(t(as.matrix(t3)) / pop * 100000)) # Cum. deaths / 100,000 pop.
+t6 <- data.frame(t(t(as.matrix(t1)) / pop * 100000)) # Cum. infections / 100,000 pop.
 
 ### Analysis
 library(growthcurver)
@@ -63,6 +66,10 @@ library(growthcurver)
 L <- lapply(t4, function(x) SummarizeGrowth(seq_along(rownames(t4)), x, bg_correct="none"))
 t5 <- data.frame(sapply(L, function(x) predict(x$model))) # Fitted
 row.names(t5) <- row.names(t4)
+
+L <- lapply(t6, function(x) SummarizeGrowth(seq_along(rownames(t6)), x, bg_correct="none"))
+t7 <- data.frame(sapply(L, function(x) predict(x$model))) # Fitted
+row.names(t7) <- row.names(t6)
 
 ### Plot
 library(ggplot2)
@@ -85,11 +92,11 @@ ggplot(stack(t4), aes(rep(as.Date(row.names(t4)), ncol(t4)), y=values, group=ind
     x = "Date", y = "Deaths / 100,000 pop.") +
   theme(legend.position="none")
 
-td <- cbind(date=rep(row.names(t4), ncol(t4)), stack(t4)[, c(2,1)], stack(t5)[, 1])
-colnames(td) <- c("date", "state", "death", "fitted")
-
 bg <- c(e="#FFCCCC", w="#CCCCFF", b="#FFCCFF")[ew]
 names(bg) <- state
+
+td <- cbind(date=rep(row.names(t4), ncol(t4)), stack(t4)[, c(2,1)], stack(t5)[, 1])
+colnames(td) <- c("date", "state", "death", "fitted")
 
 ggplot(td, aes(as.Date(date), death)) +
   facet_geo(~ state, grid="de_states_grid1") +
@@ -110,4 +117,28 @@ ggplot(td, aes(as.Date(date), death)) +
     vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +
   theme(legend.position="none")
 
-ggsave("cov19.png", width=16, height=12, dpi=72)
+ggsave("cov19d.png", width=12, height=9, dpi=96)
+
+ti <- cbind(date=rep(row.names(t6), ncol(t6)), stack(t6)[, c(2,1)], stack(t7)[, 1])
+colnames(ti) <- c("date", "state", "infection", "fitted")
+
+ggplot(ti, aes(as.Date(date), infection)) +
+  facet_geo(~ state, grid="de_states_grid1") +
+  geom_rect(aes(fill=state), xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
+  geom_point(shape=1) +
+  geom_line(aes(as.Date(date), fitted), color="red") +
+  scale_x_date(date_labels="%m/%d", date_breaks="2 weeks") +
+  scale_fill_manual("legend", values=bg) +
+  labs(
+    title = sprintf(
+      "COVID-19 infections in Germany (as of %s)",
+      rownames(t4)[nrow(t4)]),
+    caption = "Data Source: Wikipedia based on Robert Koch Institute",
+    x = "Date",
+    y = "Infections / 100,000 pop.") +
+  geom_text(
+    x=-Inf, y=Inf, aes(label=sprintf("%.2f", t6[nrow(t6), state])),
+    vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +
+  theme(legend.position="none")
+
+ggsave("cov19i.png", width=12, height=9, dpi=96)
