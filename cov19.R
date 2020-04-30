@@ -21,13 +21,13 @@ library(growthcurver)
 
 # Fitted Cum. infections / 100,000 pop.
 L <- lapply(tbl[[2]], function(x) 
-  SummarizeGrowth(seq_along(rownames(tbl[[2]])), x, bg_correct="none"))
+  SummarizeGrowth(seq_along(x), x, bg_correct="none"))
 tbl[[5]] <- data.frame(sapply(L, function(x) predict(x$model)))
 row.names(tbl[[5]]) <- row.names(tbl[[2]])
 
 # Fitted Cum. deaths / 100,000 pop.
 L <- lapply(tbl[[4]], function(x) 
-  SummarizeGrowth(seq_along(rownames(tbl[[4]])), x, bg_correct="none"))
+  SummarizeGrowth(seq_along(x), x, bg_correct="none"))
 tbl[[6]] <- data.frame(sapply(L, function(x) predict(x$model)))
 row.names(tbl[[6]]) <- row.names(tbl[[4]])
 
@@ -57,7 +57,7 @@ ggplot(ti, aes(as.Date(date), infection)) +
     x = "Date",
     y = "Infections / 100,000 pop.") +
   geom_text(
-    x=-Inf, y=Inf, aes(label=sprintf("%5.1f", t2[nrow(t2), state])),
+    x=-Inf, y=Inf, aes(label=sprintf("%3.0f", t2[nrow(t2), state])),
     vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +
   theme(legend.position="none")
 
