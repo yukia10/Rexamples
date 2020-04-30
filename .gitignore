@@ -37,3 +37,8 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+Rexamples.Rproj
+*.RData
+doc/
+
