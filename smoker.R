@@ -65,3 +65,42 @@ ggplot(tb, aes(sex, rate)) +
   theme(legend.position="none")
 
 ggsave("smoker.png", width=12, height=9, dpi=96)
+
+stop("Expected termination.")
+
+load("cov19de.RData")
+
+t4 <- tbl[[4]]
+x <- as.numeric(smokers["Men",])
+y <- as.numeric(tail(t4, 1))
+
+# plot
+plot(x, y, type="n", xlab="Smoking rate [%]", ylab="Deaths / 100,000 pop.", ylim=c(0, max(y)))
+text(x, y, state, col=c(e="red", w="blue", b="purple")[ew])
+abline(lm(y[ew == "e"] ~ x[ew == "e"]), lty=2, col="red")
+abline(lm(y[ew == "w"] ~ x[ew == "w"]), lty=2, col="blue")
+
+# gglot
+library(ggplot2)
+library(cowplot)
+theme_set(theme_cowplot())
+
+fit.e <- lm(y[ew == "e"] ~ x[ew == "e"])
+fit.w <- lm(y[ew == "w"] ~ x[ew == "w"])
+ggplot(data.frame(x=x, y=y, state=state), aes(x, y)) + 
+  geom_abline(
+    intercept=fit.e$coefficients[1], slope=fit.e$coefficients[2], 
+    linetype="dashed", color="red") +
+  geom_abline(
+    intercept=fit.w$coefficients[1], slope=fit.w$coefficients[2], 
+    linetype="dashed", color="blue") +
+  geom_text(label=state, color=c(e="red", w="blue", b="purple")[ew[state]]) +
+  labs(
+    title = sprintf(
+      "COVID-19 deaths in Germany (as of %s)", rownames(t4)[nrow(t4)]),
+    caption = "Data Source: Wikipedia based on Robert Koch Institute",
+    x = "Smoking rate [%]", y = "Deaths / 100,000 pop.") +
+  annotate(
+    "text",  x=Inf, y = Inf, 
+    label = "Slopes are not significant.", vjust=2.5, hjust=1.5,
+    fontface="italic")
