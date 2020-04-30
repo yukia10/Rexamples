@@ -4,12 +4,23 @@
 #   https://de.wikipedia.org/wiki/COVID-19-Pandemie_in_Deutschland
 #   https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Situationsberichte/Archiv.html
 
-library(rvest)
-
 # Month name in Germany
 month.de <- c(
   "Jan", "Feb", "M\u00e4r", "Apr", "Mai", "Jun", 
   "Jul", "Aug", "Sep", "Okt", "Nov", "Dez")
+
+# Federal States of Germany
+state <- c(
+  "BW", "BY", "BE", "BB", "HB", "HH", "HE", "MV",
+  "NI", "NW", "RP", "SL", "SN", "ST", "SH", "TH")
+
+# Former East Germany (GDR), Former West Germany (BRD), Berlin
+ew <- c(
+  "w", "w", "b", "e", "w", "w", "w", "e",
+  "w", "w", "w", "w", "e", "e", "w", "e")
+names(ew) <- state
+
+library(rvest)
 
 # url <- "https://de.wikipedia.org/wiki/COVID-19-Pandemie_in_Deutschland"
 url <- "doc/COVID-19-Pandemie in Deutschland – Wikipedia.html"
@@ -45,8 +56,9 @@ tbl <- lapply(seq_along(tbl), function(i) conv_tbl(tbl[i]))
 # tbl[[3]]: Cum. deaths
 
 stopifnot(
-  all(colnames(tbl[[1]]) == colnames(tbl[[2]])), 
-  all(colnames(tbl[[1]]) == colnames(tbl[[3]])))
+  all(state == colnames(tbl[[1]])), 
+  all(state == colnames(tbl[[2]])), 
+  all(state == colnames(tbl[[3]])))
 
 tbl[[3]]["2020-04-22", "TH"] <- 61 # 71 -> 61, force monotone, something was wrong
 
@@ -56,4 +68,4 @@ pop <- as.integer(100000 * tbl[[1]][k, ] / tbl[[2]][k, ]) # larger number will m
 tbl[[2]] <- data.frame(t(t(tbl[[1]]) / pop * 100000)) # Cum. infections / 100,000 pop.
 tbl[[4]] <- data.frame(t(t(tbl[[3]]) / pop * 100000)) # Cum. deaths / 100,000 pop.
 
-save(tbl, file="cov19de.RData")
+save(tbl, state, ew, file="cov19de.RData")

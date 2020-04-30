@@ -127,6 +127,7 @@ plot(
 text(K2, K3, state, col=c(e="red", w="blue", b="purple")[ew])
 abline(a=0, b=1, col="gray")
 
+library(growthcurver)
 K <- sapply(t4, function(x) 
   SummarizeGrowth(seq_along(x), x, bg_correct="none")$vals$k)
 
