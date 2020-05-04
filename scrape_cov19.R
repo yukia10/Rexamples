@@ -68,4 +68,4 @@ pop <- as.integer(100000 * tbl[[1]][k, ] / tbl[[2]][k, ]) # larger number will m
 tbl[[2]] <- data.frame(t(t(tbl[[1]]) / pop * 100000)) # Cum. infections / 100,000 pop.
 tbl[[4]] <- data.frame(t(t(tbl[[3]]) / pop * 100000)) # Cum. deaths / 100,000 pop.
 
-save(tbl, state, ew, file="cov19de.RData")
+save(tbl, pop, state, ew, file="cov19de.RData")
