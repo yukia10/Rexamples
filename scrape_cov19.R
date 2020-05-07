@@ -68,6 +68,7 @@ tbl[[3]]["2020-04-22", "TH"] <- 61 # 71 -> 61, force monotone, something was wro
 
 k <- tail(intersect(row.names(tbl[[1]]), row.names(tbl[[2]])), 1) # latest common date
 pop <- as.integer(100000 * tbl[[1]][k, ] / tbl[[2]][k, ]) # larger number will make less erroneous
+names(pop) <- state
 
 tbl[[2]] <- data.frame(t(t(tbl[[1]]) / pop * 100000)) # Cum. infections / 100,000 pop.
 tbl[[4]] <- data.frame(t(t(tbl[[3]]) / pop * 100000)) # Cum. deaths / 100,000 pop.

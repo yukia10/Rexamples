@@ -103,6 +103,30 @@ ggplot(td, aes(as.Date(date), death)) +
 
 ggsave("cov19d.png", width=12, height=9, dpi=72)
 
+t4w <- as.data.frame(lapply(t4, diff, 7))
+row.names(t4w) <- row.names(t4)[-(1:7)]
+tdw <- cbind(
+  date=rep(row.names(t4w), ncol(t4w)), stack(t4w)[, c(2, 1)])
+colnames(tdw) <- c("date", "state", "infection")
+ggplot(tdw, aes(as.Date(date), infection)) +
+  facet_geo(~ state, grid="de_states_grid1") +
+  geom_rect(aes(fill=state), xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
+  geom_point(shape=1) +
+  scale_x_date(date_labels="%-m/%-d", limits=range(as.Date(row.names(t2w)))) +
+  scale_fill_manual("legend", values=rep("#F0F0F0", ncol(t2w))) +
+  labs(
+    title = sprintf(
+      "COVID-19 weekly new deaths in Germany (as of %s)", tail(row.names(t2), 1)),
+    caption = "Data Source: Wikipedia based on Robert Koch Institute",
+    x = "Date",
+    y = "Weekly new deaths / 100,000 pop.") +
+  geom_text(
+    x=-Inf, y=Inf, aes(label=sprintf("%4.2f", t4w[nrow(t4w), state])),
+    vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +
+  theme(legend.position="none")
+
+ggsave("cov19dw.png", width=12, height=9, dpi=72)
+
 # matplot-like graph
 ggplot(stack(t2), aes(rep(as.Date(row.names(t2)), ncol(t2)), y=values, group=ind)) +
   geom_line(aes(color=ew[ind])) + 
