@@ -55,6 +55,10 @@ tbl <- lapply(seq_along(tbl), function(i) conv_tbl(tbl[i]))
 # tbl[[2]]: Cum. infections / 100,000 pop.
 # tbl[[3]]: Cum. deaths
 
+for (i in seq_along(tbl))
+  if (colnames(tbl[[i]])[10] == "NRW")
+    colnames(tbl[[i]])[10] <- "NW"
+
 stopifnot(
   all(state == colnames(tbl[[1]])), 
   all(state == colnames(tbl[[2]])), 

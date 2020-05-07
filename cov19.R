@@ -50,7 +50,32 @@ ggplot(ti, aes(as.Date(date), infection)) +
     vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +
   theme(legend.position="none")
 
-ggsave("cov19i.png", width=12, height=9, dpi=96)
+ggsave("cov19i.png", width=12, height=9, dpi=72)
+
+t2w <- as.data.frame(lapply(t2, diff, 7))
+row.names(t2w) <- row.names(t2)[-(1:7)]
+tiw <- cbind(
+  date=rep(row.names(t2w), ncol(t2w)), stack(t2w)[, c(2, 1)])
+colnames(tiw) <- c("date", "state", "infection")
+ggplot(tiw, aes(as.Date(date), infection)) +
+  facet_geo(~ state, grid="de_states_grid1") +
+  geom_rect(aes(fill=state), xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
+  geom_hline(yintercept=50, color="gray") +
+  geom_point(shape=1) +
+  scale_x_date(date_labels="%-m/%-d") +
+  scale_fill_manual("legend", values=rep("#F0F0F0", ncol(t2w))) +
+  labs(
+    title = sprintf(
+      "COVID-19 weekly new infections in Germany (as of %s)", tail(row.names(t2), 1)),
+    caption = "Data Source: Wikipedia based on Robert Koch Institute",
+    x = "Date",
+    y = "Weekly new infections / 100,000 pop.") +
+  geom_text(
+    x=-Inf, y=Inf, aes(label=sprintf("%4.1f", t2w[nrow(t2w), state])),
+    vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +
+  theme(legend.position="none")
+
+ggsave("cov19iw.png", width=12, height=9, dpi=72)
 
 td <- cbind(
   date=rep(row.names(tbl[[4]]), ncol(tbl[[4]])), 
@@ -76,7 +101,7 @@ ggplot(td, aes(as.Date(date), death)) +
     vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +
   theme(legend.position="none")
 
-ggsave("cov19d.png", width=12, height=9, dpi=96)
+ggsave("cov19d.png", width=12, height=9, dpi=72)
 
 # matplot-like graph
 ggplot(stack(t2), aes(rep(as.Date(row.names(t2)), ncol(t2)), y=values, group=ind)) +

@@ -64,7 +64,7 @@ ggplot(tb, aes(sex, rate)) +
     caption = "Data Source: Journal of Health Monitoring S2/2019, Robert Koch Institute") +
   theme(legend.position="none")
 
-ggsave("smoker.png", width=12, height=9, dpi=96)
+ggsave("smoker.png", width=12, height=9, dpi=72)
 
 stop("Expected termination.")
 
@@ -81,7 +81,7 @@ abline(lm(y[ew == "e"] ~ x[ew == "e"]), lty=2, col="red")
 abline(lm(y[ew == "w"] ~ x[ew == "w"]), lty=2, col="blue")
 abline(lm(y ~ x), lty=2, col="darkgray")
 
-# gglot
+# ggplot
 library(ggplot2)
 library(cowplot)
 theme_set(theme_cowplot())
