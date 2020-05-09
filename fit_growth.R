@@ -10,60 +10,10 @@
 library(growthrates)
 library(doParallel)
 
-grow_logis <- function(time, parms, ...) { # should be equivalence to grow_logistic
-  ode_logis <- function(time, init, parms, ...) {
-    with(as.list(c(parms, init)), list(mumax * y * (1 - y / K)))
-  }
-  init <- parms[c("y0")]
-  names(init) <- c("y")
-  odeparms <- parms[c("mumax", "K")]
-  ode(init, time, ode_logis, parms=odeparms, ...)
-}
-
-grow_glogis <- function(time, parms, ...) {
-  ode_glogis <- function(time, init, parms, ...) {
-    with(as.list(c(parms, init)), list(mumax * y^p * (1 - y / K)))
-  }
-  init <- parms[c("y0")]
-  names(init) <- c("y")
-  odeparms <- parms[c("mumax", "K", "p")]
-  ode(init, time, ode_glogis, parms=odeparms, ...)
-}
-
-grow_richa <- function(time, parms, ...) { # Richards growth
-  ode_richa <- function(time, init, parms, ...) {
-    with(as.list(c(parms, init)), list(mumax * y * (1 - (y / K)^beta)))
-  }
-  init <- parms[c("y0")]
-  names(init) <- c("y")
-  odeparms <- parms[c("mumax", "K", "beta")]
-  ode(init, time, ode_richa, parms=odeparms, ...)
-}
-
-grow_gomp <- function(time, parms, ...) { # should be equivalence to grow_gompertz
-  ode_gomp <- function(time, init, parms, ...) {
-    with(as.list(c(parms, init)), list(mumax * y * log(K / y)))
-  }
-  init <- parms[c("y0")]
-  names(init) <- c("y")
-  odeparms <- parms[c("mumax", "K")]
-  ode(init, time, ode_gomp, parms=odeparms, ...)
-}
-
-grow_ggomp <- function(time, parms, ...) {
-  ode_ggomp <- function(time, init, parms, ...) {
-    with(as.list(c(parms, init)), list(mumax * y * log(K / y)^gamma))
-  }
-  init <- parms[c("y0")]
-  names(init) <- c("y")
-  odeparms <- parms[c("mumax", "K", "gamma")]
-  ode(init, time, ode_ggomp, parms=odeparms, ...)
-}
-
 cAIC <- function(fit) {
   ms <- fit@fit$ms # mean suquared residuals
   n <- nrow(fit@obs)
-  k <- length(fit@par)
+  k <- length(fit@fit$par)
   # l <- -n / 2 * (log(2 * pi * ms) + 1)
   # AIC <- -2 * l + 2 * k
   # cAIC <- AIC + 2 * k * (k + 1) / (n - k - 1)
@@ -92,104 +42,95 @@ seq.log <- function(from, to, length.out=2) {
   exp(seq(log(from), log(to), length.out=length.out))
 }
 
-### full data
-fit_nCoV_logis <- function(y) {
-  x <- seq_along(y)
-  
+rate <- function(y, x=NULL) {
+  if (is.null(x))
+    x <- seq_along(y)
   r <- diff(y, 2) / diff(x, 2) / y[-c(1, length(y))]
   r <- r[!is.na(r) & is.finite(r)]
   r <- r[0 < r]
-  if (length(r) <= 0) return(NULL)
-  
+  stopifnot(0 < length(r))
+  r
+}
+
+fit_logistic <- function(y) {
+  x <- seq_along(y)
+  r <- rate(y)
+
   lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2)
   upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5)
   p <- expand.grid(
     y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y))
   
   L <- fit_growthmodel_multstart(
-    grow_logis, p, x, y, lower=lower, upper=upper,
+    grow_logistic, p, x, y, lower=lower, upper=upper,
     method="Port", control=list(iter.max=300))
   if (all(is.na(attr(L, "mse")))) return(NULL)
   L[[which.min(attr(L, "mse"))]]
 }
 
-fit_nCoV_glogis <- function(y) {
+fit_genlogistic_alpha <- function(y) {
   x <- seq_along(y)
-  
-  r <- diff(y, 2) / diff(x, 2) / y[-c(1, length(y))]
-  r <- r[!is.na(r) & is.finite(r)]
-  r <- r[0 < r]
-  if (length(r) <= 0) return(NULL)
-  
-  lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2, p=0)
-  upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5, p=1)
+  r <- rate(y)
+
+  lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2, alpha=0)
+  upper <- c(y0=1e5 / 2,  mumax=max(r), K=1e5,        alpha=1)
   p <- expand.grid(
-    y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y), p=1)
-    # y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=seq.log(lower["K"] + 1e-6, upper["K"] - 1e-6, 11), p=1)
+    y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y), 
+    alpha=1, beta=1, gamma=1)
 
   L <- fit_growthmodel_multstart(
-    grow_glogis, p, x, y, lower=lower, upper=upper,
+    grow_genlogistic, p, x, y, which=c("y0", "mumax", "K", "alpha"),
+    lower=lower, upper=upper,
     method="Port", control=list(iter.max=300))
   if (all(is.na(attr(L, "mse")))) return(NULL)
   L[[which.min(attr(L, "mse"))]]
 }
 
-fit_nCoV_richa <- function(y) {
+fit_genlogistic_beta <- function(y) {
   x <- seq_along(y)
-  
-  r <- diff(y, 2) / diff(x, 2) / y[-c(1, length(y))]
-  r <- r[!is.na(r) & is.finite(r)]
-  r <- r[0 < r]
-  if (length(r) <= 0) return(NULL)
-  
+  r <- rate(y)
+
   lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2, beta=0)
-  upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5, beta=Inf)
+  upper <- c(y0=1e5  / 2, mumax=max(r), K=1e5,        beta=Inf)
   p <- expand.grid(
-    y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y), beta=1)
-  # y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=seq.log(lower["K"] + 1e-6, upper["K"] - 1e-6, 11), p=1)
-  
+    y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y), 
+    alpha=1, beta=1, gamma=1)
+
   L <- fit_growthmodel_multstart(
-    grow_richa, p, x, y, lower=lower, upper=upper,
+    grow_genlogistic, p, x, y, which=c("y0", "mumax", "K", "beta"), 
+    lower=lower, upper=upper,
     method="Port", control=list(iter.max=300))
   if (all(is.na(attr(L, "mse")))) return(NULL)
   L[[which.min(attr(L, "mse"))]]
 }
 
-fit_nCoV_gomp <- function(y) {
+fit_gompertz2 <- function(y) {
   x <- seq_along(y)
-  
-  r <- diff(y, 2) / diff(x, 2) / y[-c(1, length(y))]
-  r <- r[!is.na(r) & is.finite(r)]
-  r <- r[0 < r]
-  if (length(r) <= 0) return(NULL)
-  
+  r <- rate(y)
+
   lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2)
   upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5)
   p <- expand.grid(
     y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y))
   
   L <- fit_growthmodel_multstart(
-    grow_gomp, p, x, y, lower=lower, upper=upper,
+    grow_gompertz2, p, x, y, lower=lower, upper=upper,
     method="Port", control=list(iter.max=300))
   if (all(is.na(attr(L, "mse")))) return(NULL)
   L[[which.min(attr(L, "mse"))]]
 }
 
-fit_nCoV_ggomp <- function(y) {
+fit_gompertz3 <- function(y) {
   x <- seq_along(y)
-  
-  r <- diff(y, 2) / diff(x, 2) / y[-c(1, length(y))]
-  r <- r[!is.na(r) & is.finite(r)]
-  r <- r[0 < r]
-  if (length(r) <= 0) return(NULL)
-  
-  lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2, gamma=1e-5)
-  upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5, gamma=Inf)
+  r <- rate(y)
+
+  lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2, lambda=-length(x))
+  upper <- c(y0=1e5 / 2, mumax=max(r),  K=1e5,        lambda=length(x))
   p <- expand.grid(
-    y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y), gamma=1.0)
+    y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y), lambda=0)
   
   L <- fit_growthmodel_multstart(
-    grow_ggomp, p, x, y, lower=lower, upper=upper,
+    grow_gompertz3, p, x, y, lower=lower, upper=upper,
     method="Port", control=list(iter.max=300))
   if (all(is.na(attr(L, "mse")))) return(NULL)
   L[[which.min(attr(L, "mse"))]]
@@ -200,84 +141,29 @@ registerDoParallel(detectCores()) # hyperthreading disabled
 load("cov19de.RData") # generated by scrape_cov19.R
 t4 <- tbl[[4]]
 
-L2 <- lapply(t4, fit_nCoV_logis)
-cAIC2 <- sapply(L2, cAIC)
-K2 <- sapply(L2, function(x) x@par)["K",]
+funs <- c(
+  "fit_logistic", "fit_genlogistic_alpha", "fit_genlogistic_beta",
+  "fit_gompertz2", "fit_gompertz3")
+names(funs) <- c(
+  "logistic", "logistic alpha", "Richards", "Gompertz", "Gompertz lag")
+Ls <- lapply(funs, function(fun) lapply(t4, fun))
+cAICs <- t(sapply(Ls, function(L) sapply(L, cAIC)))
+Ks <- t(sapply(Ls, function(L) sapply(L, function(x) x@par)["K", ]))
 
-L3 <- lapply(t4, fit_nCoV_glogis)
-cAIC3 <- sapply(L3, cAIC)
-K3 <- sapply(L3, function(x) x@par)["K",]
+barplot(cAICs, beside=TRUE, xlab="State", ylab="cAIC")
+legend("topright", names(funs), fill=gray.colors(length(funs)), ncol=2, cex=0.8)
+
+barplot(Ks, beside=TRUE, xlab="State", ylab="K")
+legend("topright", names(funs), fill=gray.colors(length(funs)), ncol=2, cex=0.8)
 
 plot(
-  cAIC2, cAIC3, type="n", 
-  main="cAIC", xlab="logistic", ylab="generalized logistic")
-text(cAIC2, cAIC3, state, col=c(e="red", w="blue", b="purple")[ew])
+  cAICs[3,], cAICs[5,], type="n", 
+  main="cAIC", xlab="Richards", ylab="Gompertz lag")
+text(cAICs[3,], cAICs[5,], state, col=c(e="red", w="blue", b="purple")[ew])
 abline(a=0, b=1, col="gray")
 
 plot(
-  K2, K3, type="n", log="xy",
-  main="K", xlab="logistic", ylab="generalized logistic")
-text(K2, K3, state, col=c(e="red", w="blue", b="purple")[ew])
+  Ks[3,], Ks[5,], type="n", log="xy",
+  main="K", xlab="Richards", ylab="Gompertz lag")
+text(Ks[3,], Ks[5,], state, col=c(e="red", w="blue", b="purple")[ew])
 abline(a=0, b=1, col="gray")
-
-library(growthcurver)
-K <- sapply(t4, function(x) 
-  SummarizeGrowth(seq_along(x), x, bg_correct="none")$vals$k)
-
-stop("Expected termination.")
-
-### simple data
-y <- c(
-  0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-  0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-  0.000000, 0.100852, 0.100852, 0.201705, 0.201705, 0.201705, 0.201705,
-  0.705966, 0.705966, 0.806818, 1.109375, 1.210227, 1.411932, 1.411932,
-  1.411932, 1.613636, 2.319602, 2.319602, 3.630682, 4.134943, 4.336648,
-  4.437500, 5.244318)
-x <- seq_along(y)
-
-r <- diff(y, 2) / diff(x, 2) / y[-c(1, length(y))]
-r <- r[!is.na(r) & is.finite(r)]
-r <- r[0 < r]
-
-lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2)
-upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5)
-p <- c(y0=1e-5, mumax=median(r), K=max(y))
-fit <- fit_growthmodel(
-  grow_logis, p, x, y, lower=lower, upper=upper, 
-  method="Port", control=list(iter.max=300))
-summary(fit, cov=FALSE)
-print(cAIC(fit))
-
-lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2, p=0)
-upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5, p=1)
-p <- c(y0=1e-5, mumax=median(r), K=max(y), p=1)
-fit <- fit_growthmodel(
-  grow_glogis, p, x, y, lower=lower, upper=upper,
-  method="Port", control=list(iter.max=300, trace=TRUE))
-summary(fit, cov=FALSE)
-print(cAIC(fit))
-
-registerDoParallel(detectCores()) # hyperthreading disabled
-
-lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2)
-upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5)
-p <- expand.grid(
-  y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=seq.log(max(y) / 2 + 1e-6, 1e5 / 2, 11))
-L <- fit_growthmodel_multstart(
-  grow_logis, p, x, y, lower=lower, upper=upper,
-  method="Port", control=list(iter.max=300))
-fit <- L[[which.min(attr(L, "mse"))]]
-summary(fit, cov=FALSE)
-print(cAIC(fit))
-
-lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2, p=0)
-upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5, p=1)
-p <- expand.grid(
-  y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=seq.log(max(y) / 2 + 1e-6, 1e5 / 2, 11), p=1)
-L <- fit_growthmodel_multstart(
-  grow_glogis, p, x, y, lower=lower, upper=upper, 
-  method="Port", control=list(iter.max=300))
-fit <- L[[which.min(attr(L, "mse"))]]
-summary(fit, cov=FALSE)
-print(cAIC(fit))
