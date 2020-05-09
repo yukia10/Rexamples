@@ -1,9 +1,11 @@
 # fit_growth.R - Fitting growth curve example
 
 # Reference of generalized logistics:
-#   Burger, R et al.: "Comparative analysis of phenomenological growth
+#   [1] Burger, R et al.: "Comparative analysis of phenomenological growth
 #   models applied to epidemic outbreaks", 
 #   Mathematical Bioscience and Engineering, 16(5), 4250-4274 (2019).
+#   [2] Tsoularis, A.: "Analysis of Logistic Growth Models",
+#   Res. Lett. Inf. Math. Sci., 2, 23-46 (2001).
 
 library(growthrates)
 library(doParallel)
@@ -26,6 +28,36 @@ grow_glogis <- function(time, parms, ...) {
   names(init) <- c("y")
   odeparms <- parms[c("mumax", "K", "p")]
   ode(init, time, ode_glogis, parms=odeparms, ...)
+}
+
+grow_richa <- function(time, parms, ...) { # Richards growth
+  ode_richa <- function(time, init, parms, ...) {
+    with(as.list(c(parms, init)), list(mumax * y * (1 - (y / K)^beta)))
+  }
+  init <- parms[c("y0")]
+  names(init) <- c("y")
+  odeparms <- parms[c("mumax", "K", "beta")]
+  ode(init, time, ode_richa, parms=odeparms, ...)
+}
+
+grow_gomp <- function(time, parms, ...) { # should be equivalence to grow_gompertz
+  ode_gomp <- function(time, init, parms, ...) {
+    with(as.list(c(parms, init)), list(mumax * y * log(K / y)))
+  }
+  init <- parms[c("y0")]
+  names(init) <- c("y")
+  odeparms <- parms[c("mumax", "K")]
+  ode(init, time, ode_gomp, parms=odeparms, ...)
+}
+
+grow_ggomp <- function(time, parms, ...) {
+  ode_ggomp <- function(time, init, parms, ...) {
+    with(as.list(c(parms, init)), list(mumax * y * log(K / y)^gamma))
+  }
+  init <- parms[c("y0")]
+  names(init) <- c("y")
+  odeparms <- parms[c("mumax", "K", "gamma")]
+  ode(init, time, ode_ggomp, parms=odeparms, ...)
 }
 
 cAIC <- function(fit) {
@@ -97,6 +129,67 @@ fit_nCoV_glogis <- function(y) {
 
   L <- fit_growthmodel_multstart(
     grow_glogis, p, x, y, lower=lower, upper=upper,
+    method="Port", control=list(iter.max=300))
+  if (all(is.na(attr(L, "mse")))) return(NULL)
+  L[[which.min(attr(L, "mse"))]]
+}
+
+fit_nCoV_richa <- function(y) {
+  x <- seq_along(y)
+  
+  r <- diff(y, 2) / diff(x, 2) / y[-c(1, length(y))]
+  r <- r[!is.na(r) & is.finite(r)]
+  r <- r[0 < r]
+  if (length(r) <= 0) return(NULL)
+  
+  lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2, beta=0)
+  upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5, beta=Inf)
+  p <- expand.grid(
+    y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y), beta=1)
+  # y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=seq.log(lower["K"] + 1e-6, upper["K"] - 1e-6, 11), p=1)
+  
+  L <- fit_growthmodel_multstart(
+    grow_richa, p, x, y, lower=lower, upper=upper,
+    method="Port", control=list(iter.max=300))
+  if (all(is.na(attr(L, "mse")))) return(NULL)
+  L[[which.min(attr(L, "mse"))]]
+}
+
+fit_nCoV_gomp <- function(y) {
+  x <- seq_along(y)
+  
+  r <- diff(y, 2) / diff(x, 2) / y[-c(1, length(y))]
+  r <- r[!is.na(r) & is.finite(r)]
+  r <- r[0 < r]
+  if (length(r) <= 0) return(NULL)
+  
+  lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2)
+  upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5)
+  p <- expand.grid(
+    y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y))
+  
+  L <- fit_growthmodel_multstart(
+    grow_gomp, p, x, y, lower=lower, upper=upper,
+    method="Port", control=list(iter.max=300))
+  if (all(is.na(attr(L, "mse")))) return(NULL)
+  L[[which.min(attr(L, "mse"))]]
+}
+
+fit_nCoV_ggomp <- function(y) {
+  x <- seq_along(y)
+  
+  r <- diff(y, 2) / diff(x, 2) / y[-c(1, length(y))]
+  r <- r[!is.na(r) & is.finite(r)]
+  r <- r[0 < r]
+  if (length(r) <= 0) return(NULL)
+  
+  lower <- c(y0=1e-5 / 2, mumax=min(r), K=max(y) / 2, gamma=1e-5)
+  upper <- c(y0=1e5 / 2, mumax=max(r), K=1e5, gamma=Inf)
+  p <- expand.grid(
+    y0=1e-5, mumax=seq.log(min(r) + 1e-6, max(r) - 1e-6, 11), K=max(y), gamma=1.0)
+  
+  L <- fit_growthmodel_multstart(
+    grow_ggomp, p, x, y, lower=lower, upper=upper,
     method="Port", control=list(iter.max=300))
   if (all(is.na(attr(L, "mse")))) return(NULL)
   L[[which.min(attr(L, "mse"))]]
