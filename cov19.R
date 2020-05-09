@@ -66,10 +66,10 @@ ggplot(tiw, aes(as.Date(date), infection)) +
   scale_fill_manual("legend", values=rep("#F0F0F0", ncol(t2w))) +
   labs(
     title = sprintf(
-      "COVID-19 weekly new infections in Germany (as of %s)", tail(row.names(t2), 1)),
+      "COVID-19 last 7 days new infections in Germany (as of %s)", tail(row.names(t2), 1)),
     caption = "Data Source: Wikipedia based on Robert Koch Institute",
     x = "Date",
-    y = "Weekly new infections / 100,000 pop.") +
+    y = "Last 7 days new infections / 100,000 pop.") +
   geom_text(
     x=-Inf, y=Inf, aes(label=sprintf("%4.1f", t2w[nrow(t2w), state])),
     vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +
@@ -97,7 +97,7 @@ ggplot(td, aes(as.Date(date), death)) +
     x = "Date",
     y = "Deaths / 100,000 pop.") +
   geom_text(
-    x=-Inf, y=Inf, aes(label=sprintf("%5.2f", t4[nrow(t4), state])),
+    x=-Inf, y=Inf, aes(label=sprintf("%4.1f", t4[nrow(t4), state])),
     vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +
   theme(legend.position="none")
 
@@ -116,10 +116,10 @@ ggplot(tdw, aes(as.Date(date), infection)) +
   scale_fill_manual("legend", values=rep("#F0F0F0", ncol(t2w))) +
   labs(
     title = sprintf(
-      "COVID-19 weekly new deaths in Germany (as of %s)", tail(row.names(t2), 1)),
+      "COVID-19 last 7 days new deaths in Germany (as of %s)", tail(row.names(t2), 1)),
     caption = "Data Source: Wikipedia based on Robert Koch Institute",
     x = "Date",
-    y = "Weekly new deaths / 100,000 pop.") +
+    y = "Last 7 days new deaths / 100,000 pop.") +
   geom_text(
     x=-Inf, y=Inf, aes(label=sprintf("%4.2f", t4w[nrow(t4w), state])),
     vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +

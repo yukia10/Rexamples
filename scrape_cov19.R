@@ -64,7 +64,19 @@ stopifnot(
   all(state == colnames(tbl[[2]])), 
   all(state == colnames(tbl[[3]])))
 
-tbl[[3]]["2020-04-22", "TH"] <- 61 # 71 -> 61, force monotone, something was wrong
+retract <- function(x) { # still assuming carefully curated cumulative data
+  for (k in which(c(0, diff(x)) < 0)) {
+    y <- x[seq_len(k - 1)]
+    l <- which(y > x[k])
+    x[l] <- max(0, y[-l])
+  }
+  x
+}
+
+tbl <- lapply(tbl, function(t) 
+  as.data.frame(lapply(t, retract), row.names=row.names(t)))
+
+# tbl[[3]]["2020-04-22", "TH"] <- 61 # 71 -> 61, force monotone, something was wrong
 
 k <- tail(intersect(row.names(tbl[[1]]), row.names(tbl[[2]])), 1) # latest common date
 pop <- as.integer(100000 * tbl[[1]][k, ] / tbl[[2]][k, ]) # larger number will make less erroneous
