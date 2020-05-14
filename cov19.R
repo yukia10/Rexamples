@@ -71,8 +71,8 @@ ggplot(tiw, aes(as.Date(date), infection)) +
     x = "Date",
     y = "Last 7 days new infections / 100,000 pop.") +
   geom_text(
-    x=-Inf, y=Inf, aes(label=sprintf("%4.1f", t2w[nrow(t2w), state])),
-    vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +
+    x=Inf, y=Inf, aes(label=sprintf("%4.1f", t2w[nrow(t2w), state])),
+    vjust=1.2, hjust=1, size=5, check_overlap=TRUE) +
   theme(legend.position="none")
 
 ggsave("cov19iw.png", width=12, height=9, dpi=72)
@@ -121,8 +121,8 @@ ggplot(tdw, aes(as.Date(date), infection)) +
     x = "Date",
     y = "Last 7 days new deaths / 100,000 pop.") +
   geom_text(
-    x=-Inf, y=Inf, aes(label=sprintf("%4.2f", t4w[nrow(t4w), state])),
-    vjust=1.2, hjust=-0.2, size=5, check_overlap=TRUE) +
+    x=Inf, y=Inf, aes(label=sprintf("%4.2f", t4w[nrow(t4w), state])),
+    vjust=1.2, hjust=1, size=5, check_overlap=TRUE) +
   theme(legend.position="none")
 
 ggsave("cov19dw.png", width=12, height=9, dpi=72)
