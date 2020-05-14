@@ -75,7 +75,7 @@ x <- as.numeric(smokers["Men",])
 y <- as.numeric(tail(t4, 1))
 
 # plot
-plot(x, y, type="n", xlab="Smoking rate [%]", ylab="Deaths / 100,000 pop.", ylim=c(0, max(y)))
+plot(x, y, type="n", xlab="Male smoking rate [%]", ylab="Deaths / 100,000 pop.", ylim=c(0, max(y)))
 text(x, y, state, col=c(e="red", w="blue", b="purple")[ew])
 abline(lm(y[ew == "e"] ~ x[ew == "e"]), lty=2, col="red")
 abline(lm(y[ew == "w"] ~ x[ew == "w"]), lty=2, col="blue")
@@ -86,9 +86,11 @@ library(ggplot2)
 library(cowplot)
 theme_set(theme_cowplot())
 
-fit.e <- summary(lm(y[ew == "e"] ~ x[ew == "e"]))
-fit.w <- summary(lm(y[ew == "w"] ~ x[ew == "w"]))
-fit <- summary(lm(y ~ x))
+library(robustbase)
+fit.e <- summary(lmrob(y[ew == "e"] ~ x[ew == "e"], k.max=500))
+fit.w <- summary(lmrob(y[ew == "w"] ~ x[ew == "w"], k.max=500))
+fit <- summary(lmrob(y ~ x, k.max=500))
+lx <- 30
 ggplot(data.frame(x=x, y=y, state=state), aes(x, y)) + 
   geom_abline(
     intercept=fit.e$coefficients[1, 1], slope=fit.e$coefficients[2, 1], 
@@ -104,23 +106,23 @@ ggplot(data.frame(x=x, y=y, state=state), aes(x, y)) +
     title = sprintf(
       "COVID-19 deaths in Germany (as of %s)", rownames(t4)[nrow(t4)]),
     caption = "Data Source: Wikipedia based on Robert Koch Institute",
-    x = "Smoking rate [%]", y = "Deaths / 100,000 pop.") +
+    x = "Male smoking rate [%]", y = "Deaths / 100,000 pop.") +
   annotate(
-    "text",  x=30, y = Inf, label = "Slope p-value:", vjust=2) + 
+    "text",  x=lx, y = Inf, label = "Robust slope (robustbase) p-value:", vjust=2) + 
   annotate(
-    "text",  x=30, y = Inf, 
+    "text",  x=lx, y = Inf, 
     label = sprintf(
       "p=%.3f (n=  %d, Former East)", 
       fit.e$coefficients[2, 4], length(fit.e$residuals)), 
     vjust=4, hjust=0, fontface="italic", color="red") + 
   annotate(
-    "text",  x=30, y = Inf, 
+    "text",  x=lx, y = Inf, 
     label = sprintf(
       "p=%.3f (n=%d, Former West)", 
       fit.w$coefficients[2, 4], length(fit.w$residuals)), 
     vjust=6, hjust=0, fontface="italic", color="blue") + 
   annotate(
-    "text",  x=30, y = Inf, 
+    "text",  x=lx, y = Inf, 
     label = sprintf(
       "p=%.3f (n=%d, Overall)", 
       fit$coefficients[2, 4], length(fit$residuals)), 
