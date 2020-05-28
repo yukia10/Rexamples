@@ -150,10 +150,10 @@ Ls <- lapply(funs, function(fun) lapply(t4, fun))
 cAICs <- t(sapply(Ls, function(L) sapply(L, cAIC)))
 Ks <- t(sapply(Ls, function(L) sapply(L, function(x) x@par)["K", ]))
 
-barplot(cAICs, beside=TRUE, xlab="State", ylab="cAIC")
+barplot(cAICs, beside=TRUE, xlab="Federal state", ylab="cAIC", main="Model comparison")
 legend("topright", names(funs), fill=gray.colors(length(funs)), ncol=2, cex=0.8)
 
-barplot(Ks, beside=TRUE, xlab="State", ylab="K")
+barplot(Ks, beside=TRUE, xlab="Federal state", ylab="K", main="Carrying capacity")
 legend("topright", names(funs), fill=gray.colors(length(funs)), ncol=2, cex=0.8)
 
 plot(
@@ -166,4 +166,12 @@ plot(
   Ks[3,], Ks[5,], type="n", log="xy",
   main="K", xlab="Richards", ylab="Gompertz lag")
 text(Ks[3,], Ks[5,], state, col=c(e="red", w="blue", b="purple")[ew])
+abline(a=0, b=1, col="gray")
+
+K <- as.numeric(tail(t4, 1))
+plot(
+  K, Ks[3,], type="n", log="xy",
+  main="K", xlab=sprintf("K (as of %s)", tail(row.names(t4), 1)), ylab="Richards", 
+  xlim=c(1, 20), ylim=c(1, 20))
+text(K, Ks[3,], state, col=c(e="red", w="blue", b="purple")[ew])
 abline(a=0, b=1, col="gray")

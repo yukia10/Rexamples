@@ -4,10 +4,10 @@
 #   https://de.wikipedia.org/wiki/COVID-19-Pandemie_in_Deutschland
 #   https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Situationsberichte/Archiv.html
 
-# Month name in Germany
-month.de <- c(
-  "Jan", "Feb", "M\u00e4r", "Apr", "Mai", "Jun", 
-  "Jul", "Aug", "Sep", "Okt", "Nov", "Dez")
+  # Month name in Germany
+  month.de <- c(
+    "Jan", "Feb", "M\u00e4r", "Apr", "Mai", "Jun", 
+    "Jul", "Aug", "Sep", "Okt", "Nov", "Dez")
 
 # Federal States of Germany
 state <- c(
@@ -23,7 +23,7 @@ names(ew) <- state
 library(rvest)
 
 # url <- "https://de.wikipedia.org/wiki/COVID-19-Pandemie_in_Deutschland"
-url <- "doc/COVID-19-Pandemie in Deutschland – Wikipedia.html"
+url <- "doc/COVID-19-Pandemie_in_Deutschland.html"
 tbl <- url %>% read_html %>% html_nodes("table")
 
 nc <- sapply(seq_along(tbl), function(i) {
@@ -66,7 +66,7 @@ stopifnot(
 
 retract <- function(x) { # still assuming carefully curated cumulative data
   for (k in which(c(0, diff(x)) < 0)) {
-    y <- x[seq_len(k - 1)]
+    y <- x[seq_len(k - 1)] # x[seq_len(k)] may be another choice
     l <- which(y > x[k])
     x[l] <- max(0, y[-l])
   }
