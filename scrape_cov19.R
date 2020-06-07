@@ -4,10 +4,10 @@
 #   https://de.wikipedia.org/wiki/COVID-19-Pandemie_in_Deutschland
 #   https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Situationsberichte/Archiv.html
 
-  # Month name in Germany
-  month.de <- c(
-    "Jan", "Feb", "M\u00e4r", "Apr", "Mai", "Jun", 
-    "Jul", "Aug", "Sep", "Okt", "Nov", "Dez")
+# Month name in Germany
+month.de <- c(
+  "Jan", "Feb", "M\u00e4r", "Apr", "Mai", "Juni", 
+  "Jul", "Aug", "Sep", "Okt", "Nov", "Dez")
 
 # Federal States of Germany
 state <- c(
@@ -22,8 +22,8 @@ names(ew) <- state
 
 library(rvest)
 
-# url <- "https://de.wikipedia.org/wiki/COVID-19-Pandemie_in_Deutschland"
-url <- "doc/COVID-19-Pandemie_in_Deutschland.html"
+# url <- "https://de.wikipedia.org/wiki/COVID-19-Pandemie/Statistik"
+url <- "doc/COVID-19-Pandemie_Statistik.html"
 tbl <- url %>% read_html %>% html_nodes("table")
 
 nc <- sapply(seq_along(tbl), function(i) {
